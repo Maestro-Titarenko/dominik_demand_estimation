@@ -190,12 +190,21 @@ we["oz_wc"] = np.where(we["wc_ok"], we["oz"], 0.0)
 we["promo_units"] = we["MOVE"] * we["promo"]
 we["promo_B_units"] = we["MOVE"] * we["promo_B"]
 we["promo_S_units"] = we["MOVE"] * we["promo_S"]
+# Fixed-weight promotion intensity: each UPC is weighted by its share of the product's
+# units in that store over the whole sample (time-invariant), so the measure does not
+# move mechanically with this week's quantities (unlike the unit-weighted share).
+#   promo_B_fw = sum_u w_us 1[u on B] / sum_u w_us, over the product's UPCs sold that week
+we["w_fw"] = (we.groupby(["product_id", "STORE", "UPC"])["MOVE"].transform("sum")
+              / we.groupby(["product_id", "STORE"])["MOVE"].transform("sum"))
+we["fw_B"] = we["w_fw"] * we["promo_B"]
+we["fw_S"] = we["w_fw"] * we["promo_S"]
 pm = (we.groupby(["product_id", "STORE", "WEEK"])
         .agg(units=("MOVE", "sum"), oz=("oz", "sum"), ppo_x_oz=("ppo_x_oz", "sum"),
              wc_x_oz=("wc_x_oz", "sum"), oz_wc=("oz_wc", "sum"),
              promo_units=("promo_units", "sum"),
              promo_B_units=("promo_B_units", "sum"), promo_S_units=("promo_S_units", "sum"),
              promo_B=("promo_B", "max"), promo_S=("promo_S", "max"),
+             fw_B=("fw_B", "sum"), fw_S=("fw_S", "sum"), w_fw=("w_fw", "sum"),
              n_upc_sold=("UPC", "nunique"))
         .reset_index())
 
@@ -249,6 +258,12 @@ pm["promo_share"] = pm["promo_units"] / pm["units"]
 #   promo_BS_share   : share of the product's units sold under a B or S code
 pm["promo_BS"] = ((pm["promo_B"] + pm["promo_S"]) > 0).astype(int)
 pm["promo_BS_share"] = (pm["promo_B_units"] + pm["promo_S_units"]) / pm["units"]
+#   promo_B_share, promo_S_share : share of the product's units sold under B / under S
+#   promo_B_fw, promo_S_fw       : fixed-weight share of the product's UPCs on B / on S
+pm["promo_B_share"] = pm["promo_B_units"] / pm["units"]
+pm["promo_S_share"] = pm["promo_S_units"] / pm["units"]
+pm["promo_B_fw"] = pm["fw_B"] / pm["w_fw"]
+pm["promo_S_fw"] = pm["fw_S"] / pm["w_fw"]
 pm["shares"] = pm["units"] / pm["cust"]
 
 prod = u[u["product_id"].isin(keep)].merge(
@@ -312,7 +327,8 @@ cols = ["market_ids", "store", "week", "product_ids", "brand", "firm", "type",
         "cheese_group", "form", "size_oz", "random_weight", "size_class", "private_label",
         "brand_group", "type_group",
         "price", "wcost", "units", "oz", "q_oz8", "shares", "promo_share",
-        "promo_B", "promo_S", "promo_BS", "promo_BS_share", "n_upc_sold", "cust"]
+        "promo_B", "promo_S", "promo_BS", "promo_BS_share", "promo_B_share", "promo_S_share",
+        "promo_B_fw", "promo_S_fw", "n_upc_sold", "cust"]
 pm = pm[cols].sort_values(["store", "week", "product_ids"]).reset_index(drop=True)
 
 inside = pm.groupby("market_ids")["shares"].sum().rename("inside_share")

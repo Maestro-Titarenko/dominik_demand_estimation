@@ -37,6 +37,7 @@ Robustness / alternatives:
     --panel fine --dummies fine                                 150-product panel, fine dummies
     --share-unit package                                        one package = one choice
     --fe week --store-controls                                  observed store controls, no store FE
+    --promo {any,share,fw,fwdummy} [--promo-cut 0.5]            B and S promotion controls in X1
 """
 import argparse
 import contextlib
@@ -90,6 +91,13 @@ ap.add_argument("--demo-iv", action=argparse.BooleanOptionalAction, default=True
 ap.add_argument("--cost-iv", action=argparse.BooleanOptionalAction, default=True,
                 help="add wholesale-cost instruments: own cost and rivals' mean cost (market, "
                      "type group); cost = price x (1 - PROFIT/100), chain-wide per UPC-week")
+ap.add_argument("--promo", choices=["none", "any", "share", "fw", "fwdummy"], default="none",
+                help="promotion controls in X1, one column for bonus buy (B) and one for simple "
+                     "price reduction (S): any = 1 if any UPC of the product is on the deal; "
+                     "share = share of the product's units sold on the deal (moves "
+                     "mechanically with quantity); fw = fixed-weight share of the product's "
+                     "UPCs on the deal; fwdummy = 1[fw >= --promo-cut]")
+ap.add_argument("--promo-cut", type=float, default=0.5, help="threshold for --promo fwdummy")
 ap.add_argument("--eval-only", action="store_true",
                 help="benchmark: evaluate the objective once at the starting values and exit")
 args = ap.parse_args()
@@ -104,7 +112,9 @@ TAG = (f"{args.panel}_every{args.every}_fe-{args.fe}_{args.dummies}" + ("_storec
           if args.market_size == "mw" else "")
        + f"_pi-{args.pi}"
        + ("_nest" if args.nest else "") + ("_demoiv" if args.demo_iv else "")
-       + ("_costiv" if args.cost_iv else ""))
+       + ("_costiv" if args.cost_iv else "")
+       + ("" if args.promo == "none" else f"_promo-{args.promo}"
+          + (f"{args.promo_cut:g}" if args.promo == "fwdummy" else "")))
 WEEK_FE = args.fe in ("week", "store_week")
 
 pyblp.options.digits = 3
@@ -125,6 +135,8 @@ def independent_columns(a, center=True, tol=1e-8):
 cols = ["market_ids", "store", "week", "product_ids", "brand", "firm", "type", "form",
         "cheese_group", "brand_group", "type_group", "size_class", "price", "shares",
         "units", "q_oz8", "size_oz", "random_weight", "cust", "wcost"]
+if args.promo != "none":
+    cols += ["promo_B", "promo_S", "promo_B_share", "promo_S_share", "promo_B_fw", "promo_S_fw"]
 PANEL = DATA / ("panel_week_coarse.parquet" if args.panel == "coarse" else "panel_week.parquet")
 pdat = pd.read_parquet(PANEL, columns=cols)
 print(f"panel: {PANEL.name}  products: {pdat.product_ids.nunique()}")
@@ -211,6 +223,20 @@ if args.store_controls:
     assert pdat["store"].nunique() == n0, "store controls missing for some stores"
     x1_labels.update(ctrl_labels)
     print(f"store controls: {list(ctrl_labels.values())}")
+
+# ------------------------------------------------------------------ promotion controls
+# Treated as exogenous characteristics of the product-week (in X1, hence also in Z).
+if args.promo != "none":
+    src = {"any": ("promo_B", "promo_S"), "share": ("promo_B_share", "promo_S_share"),
+           "fw": ("promo_B_fw", "promo_S_fw"), "fwdummy": ("promo_B_fw", "promo_S_fw")}[args.promo]
+    for lab, c in zip(["B", "S"], src):
+        v = pdat[c].astype(float)
+        if args.promo == "fwdummy":
+            v = (v >= args.promo_cut).astype(float)
+        pdat[f"pr_{lab}"] = v.values
+        x1_labels[f"pr_{lab}"] = f"promo {lab} ({args.promo})"
+    print(f"promotion controls ({args.promo}): mean B {pdat.pr_B.mean():.3f}, "
+          f"mean S {pdat.pr_S.mean():.3f}")
 
 # ------------------------------------------------------------------ BLP instruments
 # Characteristics for the instruments: size-class and type-group dummies (coarse, so the

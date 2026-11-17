@@ -42,7 +42,7 @@ Run from the project root, in order:
 | 4. Benchmark | `python code/03_blp_nevo.py --every 1` | `output/nevo_*_every1_*` | ~1 h, ~37 GB RAM |
 
 Step 4 was run on UNC Longleaf with `code/longleaf/run_nevo.sl`; setup instructions are in
-section 8 of the documentation. All estimation options are listed in the header of
+section 9 of the documentation. All estimation options are listed in the header of
 `code/03_blp_nevo.py` and with `python code/03_blp_nevo.py --help`.
 
 ## Layout
@@ -61,8 +61,8 @@ code/
     first_stage.py                   instrument strength (section 5.2)
     product_defs.py                  coverage of alternative product definitions (3.1)
     promo_stats.py                   promotion frequency and depth (3.5, 5.3)
-    stockpile.py                     post-promotion dips (9)
-    agg_elasticity.py                elasticities under time aggregation (9)
+    stockpile.py                     post-promotion dips (10)
+    agg_elasticity.py                elasticities under time aggregation (10)
   longleaf/
     setup.sh                         one-time environment setup on Longleaf
     run_nevo.sl                      SLURM job script
@@ -83,4 +83,4 @@ logs/                              Longleaf logs of the benchmark runs
 | π constant × income | 0.31 (0.25) |
 | median own-price elasticity | −1.50 (5th–95th pct: −2.41 to −1.00) |
 
-Price is in dollars per ounce. Details and caveats: sections 7 and 9 of the documentation.
+Price is in dollars per ounce. Details and caveats: sections 7, 8 and 10 of the documentation.

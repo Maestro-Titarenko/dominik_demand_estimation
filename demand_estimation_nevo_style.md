@@ -128,6 +128,8 @@ An alternative market size, weekly checkout transactions from `ccount.dta`, is a
 | `wcost` | wholesale cost $/oz $= p \times (1 - \text{PROFIT}/100)$, volume-weighted; margins outside (0, 100) treated as missing (0.05% of rows) |
 | `promo_B`, `promo_S`, `promo_BS` | 1 if any UPC in the product carried a bonus-buy (B) or simple price reduction (S) code |
 | `promo_BS_share` | share of the product's units sold under B or S |
+| `promo_B_share`, `promo_S_share` | share of the product's units sold under B, under S |
+| `promo_B_fw`, `promo_S_fw` | fixed-weight share of the product's UPCs on B, on S (§8.2) |
 | `promo_rate_oth_*` | share of the *other* products on B/S in the same market, type group, brand group or size class |
 
 ### 3.5 Descriptive statistics (estimation sample)
@@ -474,7 +476,144 @@ and $\sigma_{\text{family size}}$ move away from 0 and become significant (§7.1
 
 ---
 
-## 8. Running on Longleaf (UNC)
+## 8. Promotion controls
+
+### 8.1 Motivation
+
+Dominick's flags each UPC-store-week with a deal code. Two codes matter for cheese: **B**
+(bonus buy) and **S** (simple price reduction). The question here is whether consumers respond
+to the *information* that a product is on promotion (shelf tags, signage, display), over and
+above the price cut itself. The price cut is already captured by $p_{jt}$, so a promotion
+variable in $X_1$ measures the extra utility from the promotion signal at a given price.
+
+Promotions are observed at the store-week level, not for each shopper, so they enter as
+product-market characteristics in the mean utility $\delta_{jt}$. They are treated as
+exogenous and therefore also serve as their own instruments.
+
+Note that the Dominick's code B means "bonus buy", an in-store featured deal; it is not
+necessarily a buy-one-get-one offer.
+
+### 8.2 Measures
+
+A product merges several UPCs, so a promotion can cover part of a product. Three measures,
+each with one column for B and one for S:
+
+| Option | Definition | Interpretation |
+|---|---|---|
+| `--promo any` | 1 if any UPC of the product carries the code | a promotion tag is visible for the product |
+| `--promo fw` | $\sum_u w_{us}\,1[u \text{ on deal}] / \sum_u w_{us}$ over the product's UPCs sold that week; $w_{us}$ is UPC $u$'s share of the product's units in store $s$ over the whole sample | probability that a typical shopper of the product meets a promoted UPC |
+| `--promo fwdummy` | $1[\texttt{fw} \ge 0.5]$ (`--promo-cut`) | most of the product is on promotion |
+
+**Why fixed weights.** The obvious measure, the share of this week's units sold on the deal
+(`promo_B_share`, `promo_S_share`, available as `--promo share`), has this week's quantity in
+the denominator. A promotion raises the promoted UPC's sales, so that share moves mechanically
+with the demand shock $\xi_{jt}$. The fixed weights $w_{us}$ do not change from week to week,
+so `fw` reflects only *which* UPCs are promoted. The two measures are highly correlated (0.97
+for B, 0.96 for S), but only `fw` can be treated as an exogenous characteristic.
+
+**Descriptive statistics** (estimation sample, 1,087,156 product-markets):
+
+| | B | S |
+|---|---|---|
+| product-markets with any UPC on the deal | 28.0% | 5.0% |
+| mean of `fw` | 0.148 | 0.028 |
+| mean of `fw` when positive | 0.53 | 0.57 |
+| share with `fw` ≥ 0.5 | 13.9% | 2.8% |
+| log price relative to product-store mean, on vs off the deal | −0.048 vs +0.019 | −0.084 vs +0.004 |
+| correlation of `fw` with that log price deviation | −0.30 | −0.19 |
+
+B and S rarely coincide (1.1% of product-markets). Random-weight cheese is never on B or S, and
+small packages rarely are. Promotions coincide with lower prices, but far from perfectly, so
+price and the promotion signal are separately identified.
+
+### 8.3 Results
+
+All other settings are the benchmark defaults (§1). Standard errors in parentheses.
+
+**Quarterly subsample (2,170 markets, 46 instruments)**
+
+| | none (benchmark) | any | fw | fwdummy |
+|---|---|---|---|---|
+| price (mean $\alpha$) | −7.46 (1.52) | −4.62 (1.58) | −4.54 (1.63) | −5.05 (1.60) |
+| promo B | — | 0.45 (0.02) | 0.47 (0.03) | 0.31 (0.02) |
+| promo S | — | 0.76 (0.03) | 1.10 (0.06) | 0.89 (0.04) |
+| $\sigma$ price | 2.65 (0.87) | 1.93 (0.89) | 1.89 (0.92) | 2.05 (0.90) |
+| $\sigma$ family size | 0.32 (0.34) | 0.36 (0.44) | 0.32 (0.45) | 0.32 (0.42) |
+| $\pi$ price × income | −0.20 (0.27) | −0.10 (0.25) | −0.06 (0.25) | −0.12 (0.25) |
+| $\pi$ family size × household size | 0.38 (0.03) | 0.38 (0.03) | 0.38 (0.03) | 0.38 (0.03) |
+| median own elasticity | −1.40 | −0.88 | −0.87 | −0.96 |
+| own elasticity, 5th–95th pct. | −2.26 to −0.93 | −1.46 to −0.57 | −1.43 to −0.56 | −1.57 to −0.62 |
+
+**Full sample, `--promo fw` (27,230 markets, 49 instruments)**
+
+| | Benchmark (§7) | **With `fw` promotion controls** |
+|---|---|---|
+| price (mean $\alpha$) | −8.21 (0.45) | **−6.19 (0.46)** |
+| promo B (fw) | — | **0.46 (0.009)** |
+| promo S (fw) | — | **0.98 (0.016)** |
+| $\sigma$ constant | 0.00 (0.21) | 0.00 (0.23) |
+| $\sigma$ price | 2.93 (0.24) | 2.50 (0.24) |
+| $\sigma$ family size | 0.33 (0.10) | 0.35 (0.11) |
+| $\pi$ constant × income | 0.31 (0.25) | 0.12 (0.25) |
+| $\pi$ price × income | −0.12 (0.08) | −0.08 (0.07) |
+| $\pi$ family size × household size | 0.36 (0.008) | 0.36 (0.009) |
+| own elasticity: 5th / 25th / **50th** / 75th / 95th pct. | −2.41 / −1.80 / **−1.50** / −1.28 / −1.00 | −1.83 / −1.36 / **−1.13** / −0.96 / −0.75 |
+| products with median own elasticity above −1 | 1 of 41 | 11 of 41 |
+| run time / peak memory (Longleaf, one core) | 64 min / 37 GB | 101 min / 40 GB |
+
+Command: `python code/03_blp_nevo.py --every 1 --promo fw`. Both GMM steps converge (30
+optimizer iterations in total); the step-2 projected gradient norm is 0.05 and the
+weighting-matrix condition number $2.1\times10^6$. As in the benchmark, the reduced Hessian has
+one zero eigenvalue, from $\sigma_{\text{constant}}$ at its bound. The linear characteristics
+barely move, except that the type effects of grated parmesan, specialty and snacks (high
+prices per ounce) fall by 0.15–0.27 and that of cream cheese rises by 0.15.
+
+### 8.4 Interpretation
+
+1. **The promotion signal matters.** Both coefficients are large and precisely estimated in
+   every measure. In dollar terms (coefficient ÷ |α|, full sample): an S tag on the whole
+   product is worth $0.16/oz, about 65% of the mean price; a B promotion is worth $0.07/oz,
+   about 30%. Simple price reductions carry the stronger signal.
+2. **Price sensitivity was overstated without the controls.** Without them, the sales spike
+   in promotion weeks is attributed entirely to the price cut. With them, the mean price
+   coefficient falls by a quarter in the full sample (−8.2 → −6.2) and by about 40% in the
+   quarterly subsample; $\sigma_{\text{price}}$ falls from 2.9 to 2.5 (0.7% of simulated
+   consumers then have a positive price coefficient).
+3. **Heterogeneity is unchanged.** Family size × household size stays at 0.36; price × income
+   and constant × income remain insignificant.
+4. **The three measures agree.** `any` and `fw` give almost identical results; `fwdummy` gives
+   a somewhat smaller B coefficient and a larger price coefficient, because it codes partial
+   promotions as zero. `fw` is the preferred measure: it matches the "probability that a
+   shopper sees the promotion" interpretation and does not move with this week's quantities.
+5. **Full sample vs quarterly.** The price coefficient is larger in magnitude in the full
+   sample (−6.2 vs −4.5), whereas without promotion controls the two samples agreed closely
+   (−8.2 vs −7.5). With promotion controls, price is identified only from cost variation not
+   accompanied by a promotion; a likely reason is that this variation is thinner in the
+   quarterly subsample. The full-sample estimates are the ones to report.
+
+**Caveats.**
+
+- **Elasticities near or below one in magnitude.** The median own elasticity is −1.13 and 11 of
+  41 products have a median above −1 (cream cheese, processed slices, Velveeta). With a 34%
+  average retail margin, a single-product price setter would imply an elasticity around −3;
+  inelastic demand is inconsistent with profit maximization on that product alone.
+  Multiproduct pricing and loss-leader pricing soften this, but the gap suggests the controls
+  may absorb part of the true price response: S is itself a price cut, and the volume-weighted
+  product price is a blunter measure of the shelf price than the promotion flag is.
+- **Instrument interaction.** Manufacturer trade deals lower wholesale cost and trigger
+  promotions at the same time. With promotions in $X_1$, that part of the cost variation is
+  controlled for, and price is identified from the remaining cost variation.
+- **Exogeneity.** Promotion timing is a retailer decision and may respond to expected demand
+  (e.g. holidays; week fixed effects absorb chain-wide timing). If promotions are scheduled in
+  high-$\xi$ weeks, their coefficients are biased upward.
+
+The benchmark (no controls, median −1.50) and this specification (median −1.13) bracket the
+plausible own-price elasticities; reporting both, with the direction of each bias, is the
+honest summary.
+
+---
+
+## 9. Running on Longleaf (UNC)
 
 1. Copy code and data from the project root (only `code/`, `demo.dta` and `data/*.parquet`
    are needed):
@@ -511,14 +650,15 @@ Off campus, connect to the UNC VPN first.
 
 ---
 
-## 9. Remaining departures and extensions
+## 10. Remaining departures and extensions
 
 1. **Market size.** $M_s$ is fixed per store and driven by one holiday week in most stores.
    Robustness: `--mw-quantile 0.99`, `--mw-mult 2`, or `--market-size traffic`.
 2. **Nest.** The nesting parameter is not identified; fixing ρ at a few values (e.g. 0.3, 0.5,
    0.7) and comparing elasticities would follow Miller–Weinberg's robustness checks.
-3. **Promotions.** `promo_BS` is not in $X_1$, so the demand effect of promotion weeks loads on
-   price and the structural error. Adding it as a control is a one-line change.
+3. **Promotions.** The benchmark has no promotion controls, so the demand effect of the
+   promotion signal loads on price. §8 adds them (`--promo fw`); a random coefficient on the
+   promotion variables, interacted with income, would show which consumers respond to them.
 4. **Optimal instruments.** `results.compute_optimal_instruments()` in pyBLP (Reynaert and
    Verboven, 2014) may sharpen the estimates of Σ and Π.
 5. **Stockpiling.** A reduced-form check finds a post-promotion dip of about 8% in the

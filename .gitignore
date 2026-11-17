@@ -1,0 +1,21 @@
+# Raw Dominick's data (not redistributed; see README)
+wche.csv
+upcche.csv
+ccount.dta
+demo.dta
+
+# Generated data: rebuild with code/01_upc.py and code/02_clean.py
+data/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Large pyBLP result objects (parameters and elasticities are in the CSVs)
+*.pkl
+
+# Superseded exploratory runs
+output/archive/
+
+.DS_Store

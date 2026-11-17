@@ -1,0 +1,18 @@
+# Environment used for data construction, smoke tests and diagnostics (macOS, Python 3.9.6).
+# Gives the same estimates as requirements.txt up to numerical noise.
+# Install: /usr/bin/python3 -m venv .venv && .venv/bin/pip install -r requirements-py39.txt
+mpmath==1.3.0
+narwhals==2.21.0
+numpy==2.0.2
+packaging==26.3
+pandas==2.3.3
+patsy==1.0.3
+pyarrow==21.0.0
+pyblp==1.3.0
+pyhdfe==0.2.1
+python-dateutil==3.0.0
+pytz==2026.6
+scipy==1.13.1
+six==1.17.0
+sympy==1.14.0
+tzdata==2026.6

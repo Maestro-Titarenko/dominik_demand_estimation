@@ -523,8 +523,28 @@ for B, 0.96 for S), but only `fw` can be treated as an exogenous characteristic.
 | correlation of `fw` with that log price deviation | −0.30 | −0.19 |
 
 B and S rarely coincide (1.1% of product-markets). Random-weight cheese is never on B or S, and
-small packages rarely are. Promotions coincide with lower prices, but far from perfectly, so
-price and the promotion signal are separately identified.
+small packages rarely are. Promotions coincide with lower prices, but far from perfectly.
+
+**Are price and `fw` collinear?** No. Promotions lower prices, but once the store and week
+fixed effects are absorbed and the 19 dummies partialled out (the space in which pyBLP
+estimates $\alpha$), the promotion measures explain little of the price variation:
+
+| Check (full estimation sample, after FE and dummies) | Value |
+|---|---|
+| correlation of price with B `fw` / S `fw` | −0.13 / −0.11 |
+| $R^2$ of price on (B `fw`, S `fw`) | 0.032 |
+| variance inflation factor of price | 1.03 |
+| share of price variation left after the promotion controls | 96.8% |
+| correlation of own wholesale cost with B `fw` / S `fw` | −0.05 / −0.04 |
+| partial $R^2$ of own wholesale cost for price, without / with promotion controls | 0.846 / 0.856 |
+
+Most price variation comes from wholesale cost, differences between products and regular price
+changes, not from promotions. `fw` measures how much of a product is promoted, not the depth
+of the discount, so it is only loosely tied to the volume-weighted price. The cost instrument is
+nearly uncorrelated with `fw`, and the first stage is unaffected. Consistent with this, the
+standard error of $\alpha$ barely changes when the controls are added (0.45 → 0.46, §8.3).
+Price and the promotion signal are therefore separately identified. Script:
+[code/diagnostics/promo_collinearity.py](code/diagnostics/promo_collinearity.py).
 
 ### 8.3 Results
 
@@ -597,12 +617,16 @@ prices per ounce) fall by 0.15–0.27 and that of cream cheese rises by 0.15.
   41 products have a median above −1 (cream cheese, processed slices, Velveeta). With a 34%
   average retail margin, a single-product price setter would imply an elasticity around −3;
   inelastic demand is inconsistent with profit maximization on that product alone.
-  Multiproduct pricing and loss-leader pricing soften this, but the gap suggests the controls
-  may absorb part of the true price response: S is itself a price cut, and the volume-weighted
-  product price is a blunter measure of the shelf price than the promotion flag is.
-- **Instrument interaction.** Manufacturer trade deals lower wholesale cost and trigger
-  promotions at the same time. With promotions in $X_1$, that part of the cost variation is
-  controlled for, and price is identified from the remaining cost variation.
+  Multiproduct pricing and loss-leader pricing soften this. Mechanical collinearity between
+  price and the promotion controls is ruled out (§8.2), so the fall in $|\alpha|$ reflects
+  the removal of omitted-variable bias: without the controls, the promotion signal sits in
+  $\xi_{jt}$ and its demand effect is attributed to price. More likely sources of the low
+  elasticities are the product definition (volume elasticities of coarse cells are lower than
+  UPC elasticities, already visible in the benchmark) and promotion endogeneity (below).
+- **Instrument interaction.** Manufacturer trade deals could lower wholesale cost and trigger
+  promotions at the same time. In practice the cost instrument is almost uncorrelated with
+  `fw` (−0.05) and its first-stage strength is unchanged by the controls (§8.2), so this
+  channel is small.
 - **Exogeneity.** Promotion timing is a retailer decision and may respond to expected demand
   (e.g. holidays; week fixed effects absorb chain-wide timing). If promotions are scheduled in
   high-$\xi$ weeks, their coefficients are biased upward.

@@ -61,6 +61,7 @@ code/
     first_stage.py                   instrument strength (section 5.2)
     product_defs.py                  coverage of alternative product definitions (3.1)
     promo_stats.py                   promotion frequency and depth (3.5, 5.3)
+    promo_collinearity.py            price vs promotion controls (8.2)
     stockpile.py                     post-promotion dips (10)
     agg_elasticity.py                elasticities under time aggregation (10)
   longleaf/
@@ -70,6 +71,12 @@ output/                            benchmark estimates (full sample, quarterly, 
   archive/                         earlier exploratory runs, superseded
 logs/                              Longleaf logs of the benchmark runs
 ```
+
+`REACT-Relaxed-Active-Feature-Acquisition-of-Context-and-Temporal-Features-main/`, if present
+locally, is third-party reference code
+([REACT](https://github.com/quyunniii/REACT-Relaxed-Active-Feature-Acquisition-of-Context-and-Temporal-Features),
+active feature acquisition) kept for a possible instrument-selection extension. It is not part
+of this project and is excluded by `.gitignore`.
 
 ## Benchmark at a glance (full sample, 27,230 store-weeks)
 

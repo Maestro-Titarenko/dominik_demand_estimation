@@ -19,3 +19,8 @@ __pycache__/
 output/archive/
 
 .DS_Store
+
+# Third-party reference code, not part of this project (REACT, Gumbel-Sigmoid longitudinal
+# active feature acquisition; https://github.com/quyunniii/REACT-Relaxed-Active-Feature-Acquisition-of-Context-and-Temporal-Features).
+# Kept locally for the instrument-selection idea; do not commit.
+REACT-Relaxed-Active-Feature-Acquisition-of-Context-and-Temporal-Features-main/

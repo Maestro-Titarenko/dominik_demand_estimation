@@ -22,21 +22,129 @@ specification history are in `demand_estimation_nevo_style.md`.
 
 ---
 
-## 1. Setup
+## 1. Model and data
+
+### 1.1 Data
 
 | Item | Choice |
 |---|---|
 | Data | Dominick's cheese category, 83 stores with demographics, 380 weeks |
 | Market | store × week: 27,230 markets, 1,087,156 product-market observations |
 | Products | 41 brand group × type group × size class cells (90% of units) |
-| Shares | 8-oz equivalent units / market size; market size = 1.5 × the store's maximum weekly sales |
-| Price | $ per ounce, volume-weighted over the product's UPCs |
-| Linear part | price, 4 size, 7 brand and 8 type dummies; store and week fixed effects absorbed |
-| Random coefficients | constant, price, family-size package (diagonal Σ); constant × income, price × income, family size × household size |
-| Consumers | 20 per store: log income from the store's lognormal distribution, household size at the store mean |
-| BLP instruments | sums of size-class and type-group dummies over the firm's other products and over rivals' products (28), store demographics × characteristics (20) |
-| Cost instruments | own wholesale cost, mean wholesale cost of rival products in the market and in the type group (3) |
-| Promotion controls | fixed-weight share of the product's UPCs on bonus buy (B) and on simple price reduction (S) |
+| Quantity | 8-oz equivalent units |
+| Price | dollars per ounce, volume-weighted over the product's UPCs |
+| Wholesale cost | dollars per ounce, from Dominick's recorded gross margin |
+| Promotion | fixed-weight share of the product's UPCs on bonus buy (B) and on simple price reduction (S) |
+
+### 1.2 Utility
+
+A market $t = (s, w)$ is a store $s$ in a week $w$. Consumer $i$ in market $t$ buys one
+8-oz unit of one of the $J_t$ products or the outside good. The utility from product $j$ is
+
+$$
+u_{ijt} = x_j'\beta + \alpha_i\, p_{jt} + \gamma_i + \phi_i\, f_j + \xi_s + \xi_w + \xi_{jt} + \varepsilon_{ijt},
+\qquad u_{i0t} = \varepsilon_{i0t},
+$$
+
+where
+
+- $p_{jt}$ is the price and $x_j$ collects the size-class, brand-group and type-group
+  dummies (19 after dropping base categories);
+- $f_j = 1$ for family-size packages (12 oz and above);
+- $\xi_s$ and $\xi_w$ are store and week fixed effects, and $\xi_{jt}$ is the demand shock
+  that consumers and the retailer observe but the econometrician does not;
+- $\varepsilon_{ijt}$ is i.i.d. type I extreme value.
+
+In column (3) of Section 2 the two promotion variables are added to $x$ and vary by
+product-market.
+
+### 1.3 Random coefficients
+
+Tastes for the inside goods, for price and for family-size packages vary across consumers:
+
+$$
+\begin{pmatrix} \gamma_i \\ \alpha_i \\ \phi_i \end{pmatrix}
+=
+\begin{pmatrix} 0 \\ \alpha \\ 0 \end{pmatrix}
++ \Sigma\, \nu_i + \Pi\, D_i ,
+\qquad
+\Sigma = \begin{pmatrix} \sigma_c & 0 & 0 \\ 0 & \sigma_p & 0 \\ 0 & 0 & \sigma_f \end{pmatrix},
+\qquad
+\Pi = \begin{pmatrix} \pi_c & 0 \\ \pi_p & 0 \\ 0 & \pi_f \end{pmatrix}.
+$$
+
+- $\nu_i \sim N(0, I_3)$ are unobserved tastes.
+- $D_i = (\text{income}_i, \text{hhsize}_i)'$: log income is drawn from the store's
+  lognormal income distribution, household size is the store mean. Both are demeaned.
+- The mean tastes for the constant and for family size are absorbed in the fixed effects
+  and in $x_j'\beta$.
+
+The nonlinear parameters are $\theta = (\sigma_c, \sigma_p, \sigma_f, \pi_c, \pi_p, \pi_f)$;
+$\alpha$ and $\beta$ enter the mean utility linearly.
+
+Utility separates into a mean part and a consumer-specific part:
+
+$$
+u_{ijt} = \delta_{jt} + \mu_{ijt} + \varepsilon_{ijt},
+\qquad
+\delta_{jt} = x_j'\beta + \alpha\, p_{jt} + \xi_s + \xi_w + \xi_{jt},
+$$
+
+$$
+\mu_{ijt} = (\sigma_c \nu_{i1} + \pi_c\, \text{income}_i)
++ (\sigma_p \nu_{i2} + \pi_p\, \text{income}_i)\, p_{jt}
++ (\sigma_f \nu_{i3} + \pi_f\, \text{hhsize}_i)\, f_j .
+$$
+
+### 1.4 Choice probabilities and market shares
+
+The probability that consumer $i$ chooses product $j$ is
+
+$$
+s_{ijt} = \frac{\exp(\delta_{jt} + \mu_{ijt})}{1 + \sum_{k=1}^{J_t} \exp(\delta_{kt} + \mu_{ikt})} ,
+$$
+
+and the market share integrates over consumers. With $R = 20$ simulated consumers per
+store, reused in every week,
+
+$$
+s_{jt}(\delta_t; \theta) = \frac{1}{R} \sum_{i=1}^{R} s_{ijt} .
+$$
+
+The observed share is $s_{jt} = q_{jt} / M_s$, where $q_{jt}$ is the number of 8-oz units
+sold and the market size $M_s$ is 1.5 times the store's largest weekly cheese volume
+(Miller and Weinberg 2017).
+
+Price derivatives, used for the elasticities and the supply side:
+
+$$
+\frac{\partial s_{jt}}{\partial p_{kt}} = \frac{1}{R} \sum_{i} \alpha_i\, s_{ijt} \left( 1\{j = k\} - s_{ikt} \right),
+\qquad
+\eta_{jkt} = \frac{\partial s_{jt}}{\partial p_{kt}} \frac{p_{kt}}{s_{jt}} .
+$$
+
+### 1.5 Estimation
+
+For given $\theta$, the mean utilities $\delta_t(\theta)$ solve
+$s_{jt}(\delta_t; \theta) = s_{jt}$ for every product (Berry, Levinsohn and Pakes 1995
+contraction). The demand shock is the residual
+
+$$
+\xi_{jt}(\theta) = \delta_{jt}(\theta) - x_j'\beta - \alpha\, p_{jt} - \xi_s - \xi_w ,
+$$
+
+and the parameters are estimated by two-step GMM on $E[\xi_{jt} Z_{jt}] = 0$ with pyBLP
+(Conlon and Gortmaker 2020); the fixed effects are absorbed. Price is endogenous because
+the retailer sets it knowing $\xi_{jt}$. The excluded instruments $Z_{jt}$ are:
+
+| Group | Count | Construction |
+|---|---|---|
+| BLP sums | 28 | sums of size-class and type-group dummies over the firm's other products and over rival firms' products |
+| Demographic | 20 | store mean demographics × size-class dummies and × number of rival products |
+| Wholesale cost | 3 | own wholesale cost; mean wholesale cost of rival products in the market and in the type group |
+
+Columns that are collinear after absorbing the fixed effects and partialling out $x_j$ are
+dropped, which leaves 46 instruments without wholesale cost and 49 with it.
 
 Code: `code/03_blp_nevo.py` (demand), `code/04_supply.py` (Sections 3 and 4).
 
@@ -128,30 +236,150 @@ subsample):
 
 ## 3. Vertical conduct
 
-### 3.1 Approach
+### 3.1 Setting
 
-Each store-week has one retailer, and Dominick's records its wholesale cost $w$ for every
-UPC. So the retail margin $p - w$ is observed (median 34% of price), and the retail side of
-each conduct model can be compared with data directly. The models follow Villas-Boas (2007):
+Each store-week has one retailer, and Dominick's records its wholesale cost $w_{jt}$ for
+every product. So the retail margin $p_{jt} - w_{jt}$ is observed (median 34% of price),
+and the retail side of each conduct model can be compared with data directly. The models
+follow Villas-Boas (2007). Market subscripts are dropped below.
 
-| Model | Who sets what | Total margin $p - c$ |
-|---|---|---|
-| R-prod | Retailer prices each product on its own, given $w$ | $-s_j / (\partial s_j / \partial p_j)$ |
-| R-brand | Retailer prices brand by brand, given $w$ | Bertrand, ownership = brand group |
-| R-cat | Retailer maximizes category profit, given $w$. With nonlinear wholesale contracts ($w$ = manufacturer marginal cost) this is the vertically integrated outcome | $-(\partial s / \partial p')^{-1} s$ |
-| M-bert | Manufacturers set retail prices; retail margin is zero; the retailer owns the private label | Bertrand, ownership = manufacturer |
-| DM | Double marginalization: manufacturers set linear wholesale prices, retailer then maximizes category profit | R-cat retail margin + manufacturer margin through retail pass-through |
+Notation: $s(p)$ is the vector of shares, $M$ the market size, and
 
-For R-prod, R-brand and R-cat the model margin is a prediction of the observed $p - w$.
-Under M-bert the predicted retail margin is zero. Under DM the retail part is the R-cat
-margin, and the manufacturer margin is $-(T_w \circ (\Delta_p G)')^{-1} s$, with $G$ the
-pass-through matrix from the retailer's first-order conditions (it uses the second
-derivatives of demand). Private-label wholesale prices are treated as non-strategic.
+$$
+\Delta_{jk} = \frac{\partial s_k}{\partial p_j}
+$$
+
+the matrix of share derivatives from Section 1.4. $c_j$ is the marginal cost of the firm
+that sets the price in question, and $\circ$ is the element-by-element product. An
+ownership matrix $T$ has $T_{jk} = 1$ if products $j$ and $k$ are priced by the same
+decision-maker and 0 otherwise.
+
+### 3.2 Conduct models
+
+**Retail pricing given wholesale prices (R-prod, R-brand, R-cat).** The retailer takes $w$
+as its marginal cost. Products are split into pricing units; the unit $B$ that contains
+product $j$ chooses its prices to maximize its own profit,
+
+$$
+\max_{\{p_k\}_{k \in B}} \; M \sum_{k \in B} (p_k - w_k)\, s_k(p) .
+$$
+
+The first-order condition for $p_j$ is
+
+$$
+s_j + \sum_{k \in B} (p_k - w_k) \frac{\partial s_k}{\partial p_j} = 0 ,
+$$
+
+and stacking over products gives the retail margin
+
+$$
+p - w = -\left( T_r \circ \Delta \right)^{-1} s .
+$$
+
+The three retail models differ only in $T_r$:
+
+- **R-prod**: each product is its own unit, $T_r = I$, so
+  $p_j - w_j = -s_j / (\partial s_j / \partial p_j)$. The retailer ignores substitution
+  between products.
+- **R-brand**: a unit is a brand group (brand managers); $T_r$ is block-diagonal by brand.
+- **R-cat**: one unit, $T_r$ is a matrix of ones. The retailer maximizes category profit
+  and internalizes all substitution.
+
+**Vertical integration / nonlinear contracts.** If manufacturers sell at marginal cost and
+collect fixed fees (two-part tariffs), the retailer is the residual claimant and maximizes
+joint profit $M \sum_k (p_k - c_k) s_k(p)$. The total margin is the R-cat expression with
+$c$ in place of $w$:
+
+$$
+p - c = -\Delta^{-1} s .
+$$
+
+With a single retailer per market this is also the monopoly outcome. It has the same
+margin as R-cat and is not listed separately.
+
+**Manufacturer pricing, zero retail margin (M-bert).** Manufacturers set retail prices
+directly and the retailer earns no margin on their products. Manufacturer $f$ with product
+set $F_f$ solves
+
+$$
+\max_{\{p_k\}_{k \in F_f}} \; M \sum_{k \in F_f} (p_k - c_k)\, s_k(p)
+\quad\Longrightarrow\quad
+p - c = -\left( T_m \circ \Delta \right)^{-1} s ,
+$$
+
+with $T_m$ the manufacturer ownership matrix (Kraft owns Kraft, Philadelphia and Velveeta;
+the retailer owns the private label). Manufacturers compete Bertrand-Nash. The model
+predicts $p - w = 0$ for national brands.
+
+**Double marginalization (DM).** Manufacturers move first and set linear wholesale prices;
+the retailer then sets retail prices.
+
+*Stage 2.* The retailer maximizes category profit given $w$, as in R-cat:
+
+$$
+s(p) + \Delta\, (p - w) = 0 . \tag{1}
+$$
+
+This defines retail prices as a function of wholesale prices, $p(w)$.
+
+*Stage 1.* Manufacturer $f$ anticipates $p(w)$ and solves
+
+$$
+\max_{\{w_k\}_{k \in F_f}} \; M \sum_{k \in F_f} (w_k - c_k)\, s_k\big(p(w)\big) ,
+$$
+
+with first-order condition
+
+$$
+s_j + \sum_{k \in F_f} (w_k - c_k) \frac{\partial s_k}{\partial w_j} = 0 ,
+\qquad
+\frac{\partial s_k}{\partial w_j} = \sum_{l} \frac{\partial s_k}{\partial p_l} \frac{\partial p_l}{\partial w_j} .
+$$
+
+Let $G$ be the pass-through matrix, $G_{lj} = \partial p_l / \partial w_j$, so that
+$\Delta_w = G'\Delta$ has typical element $\partial s_k / \partial w_j$. The manufacturer
+margin is
+
+$$
+w - c = -\left( T_m \circ \Delta_w \right)^{-1} s ,
+$$
+
+and the total margin is the sum of the two layers,
+
+$$
+p - c = -\Delta^{-1} s - \left( T_m \circ \Delta_w \right)^{-1} s .
+$$
+
+The pass-through matrix comes from totally differentiating (1) with respect to $w$:
+
+$$
+G = \left( \Delta + \Delta' + H \right)^{-1} \Delta ,
+\qquad
+H_{jl} = \sum_{k} (p_k - w_k) \frac{\partial^2 s_k}{\partial p_j\, \partial p_l} ,
+$$
+
+where the second derivatives are computed analytically from the choice probabilities and
+$p - w$ is the R-cat margin. Private-label wholesale prices are not strategic: the
+private label has no manufacturer margin, and its rows and columns are left out of the
+stage-1 system.
+
+### 3.3 Comparing the models
 
 Mean utilities are recovered by share inversion at the main estimates (column 2 of Section
-2); the implied elasticities match pyBLP's to eight digits.
+2), which gives $\Delta$ in every market; the implied elasticities match pyBLP's to eight
+digits. Each model then delivers a margin vector $m^h$ and an implied marginal cost
+$c^h = p - m^h$. Three checks:
 
-### 3.2 Results
+1. **Retail margin.** For R-prod, R-brand and R-cat, $m^h$ is a prediction of the observed
+   $p - w$; M-bert predicts zero. Fit is measured by the squared error
+   $((m^h_{jt} - (p_{jt} - w_{jt})) / p_{jt})^2$, and two models are compared by the mean
+   difference in squared errors with standard errors clustered by store (in the spirit of
+   Rivers and Vuong 2002).
+2. **Sign of implied cost.** A model is implausible if $c^h < 0$ for a large share of
+   observations.
+3. **Level.** The implied Lerner index $m^h / p$ against the observed retail margin.
+
+### 3.4 Results
 
 | | Median margin / p | Quantity-weighted margin / p | Implied mc < 0 | RMSE vs observed retail margin (share of p) |
 |---|---|---|---|---|
@@ -184,7 +412,7 @@ By product group (quantity-weighted):
 | R-prod margin / p | 0.82 | 0.88 | 0.78 |
 | R-cat margin / p | 1.16 | 1.24 | 1.11 |
 
-### 3.3 What the test says
+### 3.5 What the test says
 
 - **The model with the least internalization fits best.** Implied margins rise in the order
   R-prod < R-brand < M-bert < R-cat < DM, and all exceed the observed 34%. A
@@ -225,8 +453,16 @@ The four products are removed from every choice set. Two versions:
 - **Re-priced.** Remaining prices are re-solved under R-prod, holding fixed the marginal
   cost that R-prod implies at observed prices.
 
-Consumer surplus is the expected maximum utility divided by each consumer's marginal utility
-of a dollar. Retail gross margin is $(p - w) q$ at observed wholesale costs. Baseline per
+Consumer surplus per market is the expected maximum utility converted to dollars. Price is
+in dollars per ounce and a unit is 8 oz, so the marginal utility of a dollar is
+$-\alpha_i / 8$:
+
+$$
+CS_t = M_s\, \frac{1}{R} \sum_i \frac{8}{-\alpha_i} \ln\Big( 1 + \sum_{j} \exp(\delta_{jt} + \mu_{ijt}) \Big) .
+$$
+
+Simulated consumers with $\alpha_i \ge 0$ (0.2%) are left out. Retail gross margin is
+$8 M_s \sum_j (p_{jt} - w_{jt}) s_{jt}$ at observed wholesale costs. Baseline per
 store-week: revenue 6,216 dollars, gross margin 1,948 dollars.
 
 ### 4.2 Results
@@ -285,9 +521,11 @@ The pricing equilibrium was found in 95.2% of markets; the re-priced column uses
 
 ## References
 
+- Berry, Levinsohn and Pakes (1995), Automobile prices in market equilibrium, *Econometrica*.
 - Chamberlain (1987), Asymptotic efficiency in estimation with conditional moment restrictions, *Journal of Econometrics*.
 - Conlon and Gortmaker (2020), Best practices for differentiated products demand estimation with PyBLP, *RAND Journal of Economics*.
 - Miller and Weinberg (2017), Understanding the price effects of the MillerCoors joint venture, *Econometrica*.
 - Nevo (2000), A practitioner's guide to estimation of random-coefficients logit models of demand, *Journal of Economics & Management Strategy*.
 - Reynaert and Verboven (2014), Improving the performance of random coefficients demand models: the role of optimal instruments, *Journal of Econometrics*.
+- Rivers and Vuong (2002), Model selection tests for nonlinear dynamic models, *Econometrics Journal*.
 - Villas-Boas (2007), Vertical relationships between manufacturers and retailers: inference with limited data, *Review of Economic Studies*.

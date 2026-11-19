@@ -1,0 +1,56 @@
+coarse_every1_fe-store_week_coarse_oz8_MW1.5_pi-slim_demoiv_costiv_optiv
+alpha -4.639; agents with a positive price coefficient: 2.8%
+
+markets 27,230; product-markets 1,087,156
+own-price elasticity percentiles (5,25,50,75,95): [-1.34 -0.99 -0.82 -0.69 -0.53] ; share inelastic 76.3%
+check vs pyBLP median own elasticities by product: max abs diff 1.90e-09
+
+Implied total margins (retail price less the marginal cost of the price-setter(s)):
+                         median margin/p  q-weighted margin/p  share mc<0  share mc<w  RMSE vs observed (share of p)  corr with observed margin
+observed retail (p - w)            0.339                0.295         NaN         NaN                            NaN                        NaN
+R-prod                             1.219                1.509       0.763        1.00                          1.986                      0.024
+R-brand                            1.290                1.599       0.805        1.00                          2.055                      0.024
+R-cat                              1.619                2.066       0.943        1.00                          2.295                      0.025
+M-bert                             1.332                1.678       0.823        1.00                          2.082                      0.020
+DM                                 2.057                2.770       0.975        0.99                        915.735                     -0.001
+retail pass-through of own wholesale cost under R-cat (median): 1.57; manufacturer margin / p under DM (median, national brands): 0.747
+
+Pairwise fit to observed retail margins (squared error difference / p^2, clustered by store):
+  R-prod  vs R-brand: -0.2781 (t = -2.3)  -> first fits better
+  R-prod  vs R-cat  : -1.3239 (t = -5.0)  -> first fits better
+  R-brand vs R-cat  : -1.0458 (t = -7.3)  -> first fits better
+  M-bert  vs R-prod : +0.3908 (t = +3.2)  -> second fits better
+
+By product group (quantity-weighted):
+grp                      PL packaged  PL random weight  national brands
+share of volume                0.251             0.140            0.609
+price $/oz                     0.174             0.187            0.204
+observed margin/p              0.373             0.399            0.238
+own elasticity (median)       -0.759            -0.720           -0.864
+R-prod margin/p                1.594             1.419            1.494
+R-brand margin/p               1.770             1.576            1.534
+R-cat margin/p                 2.179             1.967            2.043
+M-bert margin/p                1.770             1.576            1.664
+
+Counterfactual: remove private-label random-weight products (27,230 markets with such products; conduct for re-pricing: R-prod; equilibrium converged in 63.5%)
+  removed products' share of inside volume: 14.0%
+                                  prices fixed  re-priced (R-prod)
+inside volume %                          -9.88              -10.19
+diversion to remaining cheese %          29.38               25.56
+consumer surplus %                      -10.93              -11.28
+consumer surplus $/store-week         -2036.97            -1771.01
+retail gross margin (p-w)q %            -13.00               -8.68
+retail gross margin $/store-week       -253.30             -167.23
+variable profit at model costs %         -9.42              -10.39
+
+  remaining products:
+grp                              PL packaged  national brands
+price change % (q-weighted)             1.15             1.35
+quantity change %, prices fixed         4.61             4.73
+quantity change %, re-priced            4.03             4.06
+                           price change %  quantity change %, re-priced
+grp             same_type                                              
+PL packaged     False                1.16                          4.09
+                True                 1.15                          3.95
+national brands False                1.49                          4.23
+                True                 1.23                          3.92

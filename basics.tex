@@ -1,0 +1,445 @@
+% Cheese demand, retail conduct and a ban on store-cut cheese
+% LaTeX version of basics.md. Compiles with pdflatex (or Overleaf).
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage[authoryear,round]{natbib}
+\usepackage[hidelinks]{hyperref}
+
+\setlist{itemsep=2pt, topsep=4pt}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\newcolumntype{C}{>{\centering\arraybackslash}X}
+\renewcommand{\arraystretch}{1.15}
+
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\model}[1]{\textsf{#1}}
+
+\title{Cheese Demand, Retail Conduct and a Ban on Store-Cut Cheese:\\
+Dominick's, 1989--1997}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+This note is the short version of the project. It has three parts: the demand estimates
+(Section~\ref{sec:demand}), what they imply about vertical conduct
+(Section~\ref{sec:conduct}), and a counterfactual that removes random-weight private-label
+cheese (Section~\ref{sec:cf}). Details, robustness checks and the specification history are in
+\code{demand\_estimation\_nevo\_style.md}.
+
+\paragraph{Main findings.}
+\begin{enumerate}
+  \item BLP instruments are weak in this panel (first-stage partial $R^2$ of 0.006) and their
+        estimates move with the sample and the instrument subset (price coefficient $-16$ to
+        $-30$). Adding wholesale cost gives a stable price coefficient of $-8.2$ (0.45) and a
+        median own-price elasticity of $-1.5$. Promotions shift demand strongly (bonus buy
+        0.46, price reduction 0.98 in utility units).
+  \item Among the conduct models, product-by-product retail pricing fits the observed retail
+        margins best. Category-wide retail pricing, manufacturer price setting and double
+        marginalization are rejected; double marginalization implies negative manufacturing
+        cost for 77\% of observations. Every model over-predicts the observed 34\% margin.
+  \item Removing store-cut private-label cheese (14\% of volume) lowers cheese volume by
+        about 10\%, consumer surplus by about 11\% and the retailer's gross margin by
+        11--13\%. Only 27--31\% of the lost volume moves to packaged cheese, and remaining
+        prices rise by less than 1\%.
+\end{enumerate}
+
+% ============================================================================
+\section{Setup}\label{sec:setup}
+
+\begin{table}[h!]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}lL@{}}
+\toprule
+Item & Choice \\
+\midrule
+Data & Dominick's cheese category, 83 stores with demographics, 380 weeks \\
+Market & store $\times$ week: 27,230 markets, 1,087,156 product-market observations \\
+Products & 41 brand group $\times$ type group $\times$ size class cells (90\% of units) \\
+Shares & 8-oz equivalent units / market size; market size $= 1.5\,\times$ the store's maximum weekly sales \\
+Price & \$ per ounce, volume-weighted over the product's UPCs \\
+Linear part & price, 4 size, 7 brand and 8 type dummies; store and week fixed effects absorbed \\
+Random coefficients & constant, price, family-size package (diagonal $\Sigma$); constant $\times$ income, price $\times$ income, family size $\times$ household size \\
+Consumers & 20 per store: log income from the store's lognormal distribution, household size at the store mean \\
+BLP instruments & sums of size-class and type-group dummies over the firm's other products and over rivals' products (28); store demographics $\times$ characteristics (20) \\
+Cost instruments & own wholesale cost; mean wholesale cost of rival products in the market and in the type group (3) \\
+Promotion controls & fixed-weight share of the product's UPCs on bonus buy (B) and on simple price reduction (S) \\
+\bottomrule
+\end{tabularx}
+\caption{Specification.}\label{tab:setup}
+\end{table}
+
+Code: \code{code/03\_blp\_nevo.py} (demand), \code{code/04\_supply.py}
+(Sections~\ref{sec:conduct} and~\ref{sec:cf}).
+
+% ============================================================================
+\section{Demand estimates}\label{sec:demand}
+
+Table~\ref{tab:demand} reports three full-sample estimates. Columns (1) and (2) differ only
+in the instruments: (2) adds the three wholesale-cost instruments to the BLP instruments of
+(1). Column (3) adds the promotion controls to (2).
+
+\begin{table}[h!]
+\centering\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+ & (1) & (2) & (3) \\
+ & BLP instruments & + wholesale cost & + wholesale cost, \\
+ &  & (main) & promotion controls \\
+\midrule
+Price                              & $-20.90$ (0.51) & $-8.21$ (0.45) & $-6.19$ (0.46) \\
+Promo B                            &                 &                & 0.46 (0.01) \\
+Promo S                            &                 &                & 0.98 (0.02) \\
+\addlinespace
+$\sigma$ constant                  & 0.00 (0.58)     & 0.00 (0.21)    & 0.00 (0.23) \\
+$\sigma$ price                     & 1.62 (0.43)     & 2.93 (0.24)    & 2.50 (0.24) \\
+$\sigma$ family size               & 0.67 (0.29)     & 0.33 (0.10)    & 0.35 (0.11) \\
+constant $\times$ income           & $-0.01$ (0.18)  & 0.31 (0.25)    & 0.12 (0.25) \\
+price $\times$ income              & $-0.31$ (0.12)  & $-0.12$ (0.08) & $-0.08$ (0.07) \\
+family size $\times$ household size & 0.34 (0.02)    & 0.36 (0.01)    & 0.36 (0.01) \\
+\addlinespace
+Private label                      & 0.47            & 1.19           & 1.26 \\
+Kraft                              & 1.03            & 0.99           & 1.00 \\
+Philadelphia                       & 1.48            & 1.59           & 1.60 \\
+Sargento                           & 2.04            & 1.68           & 1.66 \\
+Random weight (size class)         & 1.12            & 0.26           & 0.37 \\
+\addlinespace
+Own-price elasticity, median       & $-4.54$         & $-1.50$        & $-1.13$ \\
+5th / 95th percentile              & $-8.33$ / $-2.92$ & $-2.41$ / $-1.00$ & $-1.83$ / $-0.75$ \\
+Excluded instruments               & 46              & 49             & 49 \\
+\bottomrule
+\end{tabular}
+\caption{Demand estimates, full sample (27,230 markets). Standard errors in parentheses.
+Brand and size coefficients are relative to Borden and the bulk size class.}\label{tab:demand}
+\end{table}
+
+\subsection{BLP instruments are weak here}
+
+\begin{table}[h!]
+\centering\small
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Excluded instruments & Partial $R^2$ & $F$ \\
+\midrule
+BLP sums                               & 0.006 & 23 \\
+Demographics $\times$ characteristics  & 0.001 & 4.6 \\
+Own wholesale cost                     & 0.835 & 438,441 \\
+All                                    & 0.839 & 9,775 \\
+\bottomrule
+\end{tabular}
+\caption{First stage for price, after store and week fixed effects and the 19 dummies
+(quarterly subsample, 2,170 markets).}\label{tab:firststage}
+\end{table}
+
+\begin{itemize}
+  \item \textbf{Why.} Product characteristics do not vary over time, so BLP sums move only
+        when the choice set changes. The 41 products are sold in almost every store-week
+        (standard deviation of the number of products per market: 0.7), so the sums are close
+        to constant within a product once the fixed effects and dummies are removed.
+  \item \textbf{The estimates are not stable.} With the same specification the price
+        coefficient is $-15.6$ (1.6) on the quarterly subsample and $-20.9$ (0.5) on the full
+        sample. Dropping the demographic instruments and keeping only the BLP sums gives
+        $-29.6$ (2.4), with $\sigma$ price at zero and demographic interactions of 20 and
+        $-15$. With wholesale cost the two samples give $-7.5$ (1.5) and $-8.2$ (0.45).
+  \item \textbf{The standard errors in column (1) should not be trusted.} They are small,
+        but conventional GMM standard errors are not valid with weak instruments, and the
+        instability above is the better guide to precision.
+  \item \textbf{The two instrument sets disagree on the level of the elasticity}, and this
+        matters for Section~\ref{sec:conduct}. Column (1) gives a median elasticity of
+        $-4.5$, column (2) gives $-1.5$. The retailer's observed margin of 34\% corresponds
+        to an elasticity near $-3$ under product-by-product pricing, between the two.
+        Wholesale cost is far stronger, but it is not beyond doubt: it is an average
+        acquisition cost, and trade deals can move it together with promotions
+        (Section~\ref{sec:limits}). Column (2) is the main specification because its
+        estimates are stable and its first stage is strong, not because column (1) is shown
+        to be wrong.
+\end{itemize}
+
+\subsection{Promotion controls}
+
+\begin{itemize}
+  \item Both promotion coefficients are large and precisely estimated. A simple price
+        reduction tag is worth about twice a bonus buy.
+  \item Adding the controls lowers the price coefficient in absolute value ($-8.2$ to
+        $-6.2$), and the median elasticity from $-1.5$ to $-1.1$: part of what looked like a
+        price response is a response to the promotion signal.
+  \item Column (2) stays the main specification for the supply side. In column (3) about
+        30\% of product-markets have inelastic demand, and promotions are a retailer choice
+        that the supply models below do not describe.
+\end{itemize}
+
+\subsection{Other remarks}
+
+\begin{itemize}
+  \item \textbf{$\sigma$ constant} is at its lower bound of zero in all columns: store and
+        week fixed effects leave little variation in the inside share to identify it.
+  \item \textbf{Optimal instruments} \citep{chamberlain1987,reynaert2014} computed from
+        column (2) halve the standard errors but give a price coefficient of $-4.6$ and a
+        median elasticity of $-0.82$, which no profit-maximizing conduct can rationalize.
+        They are not used; see \code{demand\_estimation\_nevo\_style.md}.
+\end{itemize}
+
+% ============================================================================
+\section{Vertical conduct}\label{sec:conduct}
+
+\subsection{Approach}
+
+Each store-week has one retailer, and Dominick's records its wholesale cost $w$ for every
+UPC. So the retail margin $p - w$ is observed (median 34\% of price), and the retail side of
+each conduct model can be compared with data directly. The models follow
+\citet{villasboas2007}.
+
+\begin{table}[h!]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}lLL@{}}
+\toprule
+Model & Who sets what & Total margin $p - c$ \\
+\midrule
+\model{R-prod}  & Retailer prices each product on its own, given $w$ &
+                  $-s_j / (\partial s_j / \partial p_j)$ \\
+\model{R-brand} & Retailer prices brand by brand, given $w$ &
+                  Bertrand, ownership $=$ brand group \\
+\model{R-cat}   & Retailer maximizes category profit, given $w$. With nonlinear wholesale
+                  contracts ($w =$ manufacturer marginal cost) this is the vertically
+                  integrated outcome &
+                  $-(\partial s / \partial p')^{-1} s$ \\
+\model{M-bert}  & Manufacturers set retail prices; retail margin is zero; the retailer owns
+                  the private label &
+                  Bertrand, ownership $=$ manufacturer \\
+\model{DM}      & Double marginalization: manufacturers set linear wholesale prices, retailer
+                  then maximizes category profit &
+                  \model{R-cat} retail margin $+$ manufacturer margin through retail
+                  pass-through \\
+\bottomrule
+\end{tabularx}
+\caption{Conduct models.}\label{tab:models}
+\end{table}
+
+For \model{R-prod}, \model{R-brand} and \model{R-cat} the model margin is a prediction of
+the observed $p - w$. Under \model{M-bert} the predicted retail margin is zero. Under
+\model{DM} the retail part is the \model{R-cat} margin, and the manufacturer margin is
+\[
+  w - c = -\bigl(T_w \circ (\Delta_p G)'\bigr)^{-1} s ,
+\]
+where $\Delta_p = \partial s / \partial p'$, $T_w$ is the manufacturer ownership matrix and
+$G = \partial p / \partial w'$ is the pass-through matrix from the retailer's first-order
+conditions (it uses the second derivatives of demand). Private-label wholesale prices are
+treated as non-strategic.
+
+Mean utilities are recovered by share inversion at the main estimates (column 2 of
+Table~\ref{tab:demand}); the implied elasticities match pyBLP's to eight digits.
+
+\subsection{Results}
+
+\begin{table}[h!]
+\centering\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+ & Median & Quantity-weighted & Implied & RMSE vs observed \\
+ & margin / $p$ & margin / $p$ & $mc < 0$ & retail margin (share of $p$) \\
+\midrule
+Observed retail margin & 0.34 & 0.30 &       &      \\
+\model{R-prod}         & 0.67 & 0.83 & 5\%   & 0.41 \\
+\model{R-brand}        & 0.71 & 0.88 & 8\%   & 0.46 \\
+\model{M-bert}         & 0.73 & 0.93 & 12\%  & 0.49 \\
+\model{R-cat}          & 0.92 & 1.17 & 38\%  & 0.69 \\
+\model{DM}             & 1.26 & 1.70 & 77\%  &      \\
+\bottomrule
+\end{tabular}
+\caption{Implied total margins by conduct model, full sample.}\label{tab:margins}
+\end{table}
+
+\begin{table}[h!]
+\centering\small
+\begin{tabular}{@{}cccc@{}}
+\toprule
+\model{R-prod} vs \model{R-brand} & \model{R-prod} vs \model{R-cat} &
+\model{R-brand} vs \model{R-cat} & \model{M-bert} vs \model{R-prod} \\
+\midrule
+$t = -25.5$ & $t = -25.2$ & $t = -24.9$ & $t = +28.3$ \\
+\bottomrule
+\end{tabular}
+\caption{Pairwise comparison of fit to the observed retail margin: difference in squared
+errors, standard errors clustered by store. Negative $t$: the first model fits
+better.}\label{tab:pairwise}
+\end{table}
+
+Under \model{R-cat} the median pass-through of own wholesale cost to the retail price is
+1.25, close to the 1.27 in the raw data. The \model{DM} manufacturer margin on national
+brands is 54\% of the retail price at the median.
+
+\begin{table}[h!]
+\centering\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+ & National & Private label, & Private label, \\
+ & brands & packaged & random weight \\
+\midrule
+Share of volume               & 61\%    & 25\%    & 14\% \\
+Price, \$/oz                  & 0.204   & 0.174   & 0.187 \\
+Observed retail margin / $p$  & 0.24    & 0.37    & 0.40 \\
+Median own elasticity         & $-1.59$ & $-1.39$ & $-1.30$ \\
+\model{R-prod} margin / $p$   & 0.82    & 0.88    & 0.78 \\
+\model{R-cat} margin / $p$    & 1.16    & 1.24    & 1.11 \\
+\bottomrule
+\end{tabular}
+\caption{Margins by product group (quantity-weighted).}\label{tab:groups}
+\end{table}
+
+\subsection{What the test says}
+
+\begin{itemize}
+  \item \textbf{The model with the least internalization fits best.} Implied margins rise in
+        the order \model{R-prod} $<$ \model{R-brand} $<$ \model{M-bert} $<$ \model{R-cat}
+        $<$ \model{DM}, and all exceed the observed 34\%. A \citet{millerweinberg2017} style
+        internalization parameter $\kappa$ (ownership matrix with $\kappa$ off the diagonal)
+        would be estimated at its lower bound of zero.
+  \item \textbf{Double marginalization is rejected.} It needs a manufacturer margin of 54\%
+        of the retail price on top of the retail margin, which implies negative
+        manufacturing cost for 77\% of observations.
+  \item \textbf{Category-wide retail pricing is rejected} against product-by-product
+        pricing: it implies margins near 92\% of price and negative cost in 38\% of
+        observations. Dominick's behaves like a retailer that takes wholesale prices as
+        given and does not fully exploit category-level market power.
+  \item \textbf{Manufacturer retail-price setting is rejected directly}: it predicts a zero
+        retail margin, and the observed margin is 34\% (24\% on national brands, 37--40\% on
+        private label).
+  \item \textbf{Even the best model over-predicts}: \model{R-prod} implies 67\% against 34\%
+        observed, which would need a median own elasticity near $-3$. Likely reasons:
+        products are coarse aggregates (substitution within a cell is not counted), weekly
+        data mix promotion timing with long-run response, and competition from other chains
+        is outside a store-level market. The private-label premium in observed margins
+        (37--40\% vs 24\%) is not reproduced either, which points to wholesale prices of
+        national brands being above marginal cost.
+\end{itemize}
+
+Conduct used in Section~\ref{sec:cf}: \model{R-prod}.
+
+% ============================================================================
+\section{Counterfactual: packaged cheese only}\label{sec:cf}
+
+\subsection{Design}
+
+Suppose store-cut, random-weight cheese can no longer be sold (for example for hygiene
+reasons). In the data this is four private-label products: cheddar, other natural,
+mozzarella and processed, sold by weight. They are present in every market and account for
+14.0\% of inside volume, at an observed margin of 40\%.
+
+The four products are removed from every choice set. Two versions:
+\begin{itemize}
+  \item \textbf{Prices fixed.} Uses demand only.
+  \item \textbf{Re-priced.} Remaining prices are re-solved under \model{R-prod}, holding
+        fixed the marginal cost that \model{R-prod} implies at observed prices.
+\end{itemize}
+
+Consumer surplus is the expected maximum utility divided by each consumer's marginal utility
+of a dollar. Retail gross margin is $(p - w)\,q$ at observed wholesale costs. Baseline per
+store-week: revenue \$6,216, gross margin \$1,948.
+
+\subsection{Results}
+
+\begin{table}[h!]
+\centering\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+ & Prices fixed & Re-priced (\model{R-prod}) \\
+\midrule
+Cheese volume                               & $-9.7\%$  & $-10.3\%$ \\
+Lost volume diverted to remaining cheese    & 31\%      & 27\% \\
+\addlinespace
+Remaining private label: price              & 0         & $+0.7\%$ \\
+Remaining national brands: price            & 0         & $+0.9\%$ \\
+Remaining private label: quantity           & $+4.9\%$  & $+4.3\%$ \\
+Remaining national brands: quantity         & $+5.1\%$  & $+4.3\%$ \\
+\addlinespace
+Consumer surplus                            & $-10.7\%$ & $-11.2\%$ \\
+Consumer surplus, \$ per store-week         & $-869$    & $-916$ \\
+Retail gross margin                         & $-12.8\%$ & $-11.2\%$ \\
+Retail gross margin, \$ per store-week      & $-249$    & $-218$ \\
+Variable profit at \model{R-prod} costs     & $-9.3\%$  & $-9.1\%$ \\
+\bottomrule
+\end{tabular}
+\caption{Removing random-weight private-label cheese. The pricing equilibrium was found in
+95.2\% of markets; the re-priced column uses those.}\label{tab:cf}
+\end{table}
+
+\subsection{Interpretation}
+
+\begin{itemize}
+  \item \textbf{Volume.} About 70\% of the removed volume leaves the category. Substitution
+        to packaged cheese is spread almost evenly: packaged private label and national
+        brands both gain 4--5\%, and packaged products of the same types gain no more than
+        other types. This is the logit pattern. The random coefficients are on the constant
+        (at zero), price and family size, so the model has no dimension along which
+        store-cut cheddar is closer to packaged cheddar than to cream cheese. Diversion to
+        close substitutes is probably understated and the volume loss overstated.
+  \item \textbf{Prices.} Remaining prices rise by less than 1\%. The effect is small because
+        under \model{R-prod} the retailer did not internalize substitution between products
+        to begin with; removing products only makes the remaining demand slightly less
+        elastic.
+  \item \textbf{Consumers.} Surplus falls by about 11\%, or roughly \$900 per store-week
+        against category revenue of \$6,216. The figure includes the loss of the logit taste
+        draw for four products, which tends to overstate the value of variety.
+  \item \textbf{Retailer.} Gross margin falls by 13\% at fixed prices: the removed products
+        carry the highest margins (40\%), and the diverted volume goes partly to national
+        brands at 24\%. Re-pricing recovers about one eighth of the loss.
+  \item \textbf{Manufacturers.} National-brand volume rises by 4--5\%, so branded
+        manufacturers gain. Their profit change is not reported in dollars because their
+        costs are not identified without a conduct model that fits.
+\end{itemize}
+
+% ============================================================================
+\section{Limitations}\label{sec:limits}
+
+\begin{itemize}
+  \item All conduct models over-predict the retail margin, so the marginal costs used in the
+        re-priced counterfactual are too low. The fixed-price column does not depend on
+        this.
+  \item Wholesale cost in Dominick's data is the average acquisition cost of inventory, not
+        the replacement cost, so observed margins lag wholesale price changes.
+  \item The conduct comparison is on retail margins only. Manufacturer marginal costs are
+        not observed, so the upstream part of each model is judged by whether implied costs
+        are positive, not by a formal cost-side test as in \citet{villasboas2007}.
+  \item The counterfactual holds wholesale prices, the product set of packaged cheese and
+        store traffic fixed.
+\end{itemize}
+
+% ============================================================================
+\begin{thebibliography}{9}
+
+\bibitem[Chamberlain(1987)]{chamberlain1987}
+Chamberlain, G. (1987). Asymptotic efficiency in estimation with conditional moment
+restrictions. \emph{Journal of Econometrics}, 34(3), 305--334.
+
+\bibitem[Conlon and Gortmaker(2020)]{conlon2020}
+Conlon, C. and Gortmaker, J. (2020). Best practices for differentiated products demand
+estimation with PyBLP. \emph{RAND Journal of Economics}, 51(4), 1108--1161.
+
+\bibitem[Miller and Weinberg(2017)]{millerweinberg2017}
+Miller, N. H. and Weinberg, M. C. (2017). Understanding the price effects of the MillerCoors
+joint venture. \emph{Econometrica}, 85(6), 1763--1791.
+
+\bibitem[Nevo(2000)]{nevo2000}
+Nevo, A. (2000). A practitioner's guide to estimation of random-coefficients logit models of
+demand. \emph{Journal of Economics \& Management Strategy}, 9(4), 513--548.
+
+\bibitem[Reynaert and Verboven(2014)]{reynaert2014}
+Reynaert, M. and Verboven, F. (2014). Improving the performance of random coefficients demand
+models: the role of optimal instruments. \emph{Journal of Econometrics}, 179(1), 83--98.
+
+\bibitem[Villas-Boas(2007)]{villasboas2007}
+Villas-Boas, S. B. (2007). Vertical relationships between manufacturers and retailers:
+inference with limited data. \emph{Review of Economic Studies}, 74(2), 625--652.
+
+\end{thebibliography}
+
+\end{document}

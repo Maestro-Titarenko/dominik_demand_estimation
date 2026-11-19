@@ -1,0 +1,42 @@
+product_ids,median_own_elasticity
+Kraft | grated parmesan | small (<=6oz),-1.678807707187925
+other national | specialty | small (<=6oz),-1.6082020151692755
+Kraft | grated parmesan | medium (7-10oz),-1.5735044861057847
+"Sargento | snack (string, crackers) | small (<=6oz)",-1.5198880439452283
+"other national | snack (string, crackers) | small (<=6oz)",-1.4331317083086794
+"Kraft | snack (string, crackers) | small (<=6oz)",-1.4028281735513848
+private label | grated parmesan | medium (7-10oz),-1.3950296112805443
+Sargento | shredded | small (<=6oz),-1.3870341252299894
+Sargento | shredded | medium (7-10oz),-1.291329448562941
+other national | shredded | medium (7-10oz),-1.2367430061532318
+County Line | other natural block/sliced | medium (7-10oz),-1.2304487426431208
+Sargento | shredded | large (12-16oz),-1.2288632920732023
+Kraft | other natural block/sliced | medium (7-10oz),-1.2069084979841416
+Kraft | cheddar block/sliced | medium (7-10oz),-1.203142451330647
+Kraft | shredded | medium (7-10oz),-1.200368862449962
+County Line | cheddar block/sliced | medium (7-10oz),-1.1984924046062166
+Kraft | processed | medium (7-10oz),-1.1962912881128411
+Kraft | processed | small (<=6oz),-1.1842072154562322
+Kraft | shredded | large (12-16oz),-1.1769308075884584
+private label | shredded | small (<=6oz),-1.167656183813928
+private label | other natural block/sliced | medium (7-10oz),-1.060310095553606
+private label | shredded | medium (7-10oz),-1.043827757894601
+Borden | processed | large (12-16oz),-1.0315318417198913
+Kraft | mozzarella block/sliced | large (12-16oz),-1.0269197616743884
+private label | mozzarella block/sliced | medium (7-10oz),-1.014283202887979
+Velveeta | processed | large (12-16oz),-0.9896812792839069
+other national | processed | large (12-16oz),-0.9779621835457437
+private label | shredded | large (12-16oz),-0.9687957272755626
+Philadelphia | cream cheese | small (<=6oz),-0.9626064278123843
+private label | cheddar block/sliced | medium (7-10oz),-0.9566733285938824
+Kraft | cream cheese | medium (7-10oz),-0.951060621168633
+Kraft | processed | large (12-16oz),-0.9509291520393304
+private label | other natural block/sliced | random weight,-0.9455382182150079
+private label | mozzarella block/sliced | random weight,-0.9438116595637447
+private label | cheddar block/sliced | random weight,-0.9313737530988097
+private label | processed | random weight,-0.9225199355432857
+Philadelphia | cream cheese | large (12-16oz),-0.914119135058278
+Velveeta | processed | bulk (>16oz),-0.8492912465895346
+private label | processed | large (12-16oz),-0.8318069977152123
+Philadelphia | cream cheese | medium (7-10oz),-0.7965009986869169
+private label | cream cheese | medium (7-10oz),-0.6643814130259708

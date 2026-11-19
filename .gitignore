@@ -24,3 +24,10 @@ output/archive/
 # active feature acquisition; https://github.com/quyunniii/REACT-Relaxed-Active-Feature-Acquisition-of-Context-and-Temporal-Features).
 # Kept locally for the instrument-selection idea; do not commit.
 REACT-Relaxed-Active-Feature-Acquisition-of-Context-and-Temporal-Features-main/
+
+# Large diagnostic arrays (regenerate with 03_blp_nevo.py --jacobian-at)
+*.npz
+
+# Product-market and market level supply-side output (regenerate with code/04_supply.py)
+output/supply_margins_*.csv.gz
+output/supply_cf_*.csv

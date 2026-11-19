@@ -1,0 +1,54 @@
+
+markets 27,230; product-markets 1,087,156
+own-price elasticity percentiles (5,25,50,75,95): [-2.41 -1.8  -1.5  -1.28 -1.  ] ; share inelastic 5.0%
+check vs pyBLP median own elasticities by product: max abs diff 3.47e-09
+
+Implied total margins (retail price less the marginal cost of the price-setter(s)):
+                         median margin/p  q-weighted margin/p  share mc<0  share mc<w  RMSE vs observed (share of p)  corr with observed margin
+observed retail (p - w)            0.339                0.295         NaN         NaN                            NaN                        NaN
+R-prod                             0.667                0.828       0.050       0.977                          0.414                      0.222
+R-brand                            0.710                0.882       0.083       0.984                          0.458                      0.229
+R-cat                              0.919                1.169       0.375       0.998                          0.689                      0.249
+M-bert                             0.734                0.929       0.116       0.984                          0.491                      0.189
+DM                                 1.259                1.695       0.773       0.998                        327.732                      0.004
+retail pass-through of own wholesale cost under R-cat (median): 1.25; manufacturer margin / p under DM (median, national brands): 0.544
+
+Pairwise fit to observed retail margins (squared error difference / p^2, clustered by store):
+  R-prod  vs R-brand: -0.0382 (t = -25.5)  -> first fits better
+  R-prod  vs R-cat  : -0.3028 (t = -25.2)  -> first fits better
+  R-brand vs R-cat  : -0.2646 (t = -24.9)  -> first fits better
+  M-bert  vs R-prod : +0.0695 (t = +28.3)  -> second fits better
+
+By product group (quantity-weighted):
+grp                      PL packaged  PL random weight  national brands
+share of volume                0.251             0.140            0.609
+price $/oz                     0.174             0.187            0.204
+observed margin/p              0.373             0.399            0.238
+own elasticity (median)       -1.390            -1.301           -1.594
+R-prod margin/p                0.879             0.778            0.818
+R-brand margin/p               0.982             0.870            0.843
+R-cat margin/p                 1.236             1.112            1.155
+M-bert margin/p                0.982             0.870            0.920
+
+Counterfactual: remove private-label random-weight products (27,230 markets with such products; conduct for re-pricing: R-prod; equilibrium converged in 95.2%)
+  removed products' share of inside volume: 14.0%
+                                  prices fixed  re-priced (R-prod)
+inside volume %                          -9.69              -10.30
+diversion to remaining cheese %          30.76               26.55
+consumer surplus %                      -10.71              -11.20
+consumer surplus $/store-week          -868.84             -916.01
+retail gross margin (p-w)q %            -12.76              -11.21
+retail gross margin $/store-week       -248.61             -218.41
+variable profit at model costs %         -9.29               -9.11
+
+  remaining products:
+grp                              PL packaged  national brands
+price change % (q-weighted)             0.69             0.85
+quantity change %, prices fixed         4.88             5.07
+quantity change %, re-priced            4.31             4.34
+                           price change %  quantity change %, re-priced
+grp             same_type                                              
+PL packaged     False                0.69                          4.39
+                True                 0.70                          4.21
+national brands False                0.97                          4.48
+                True                 0.74                          4.22

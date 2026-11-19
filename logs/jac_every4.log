@@ -1,0 +1,68 @@
+panel: panel_week_coarse.parquet  products: 41
+shares: unit=oz8, M = 1.5 x max weekly store sales; inside share median 0.264, p5 0.162, p95 0.417, max 0.667
+dummies: coarse  brands: 8  types: 9  sizes: 5
+X1 dummies: 19 (dropped as collinear/base: [])
+demographic instruments: 20 candidate columns
+cost instruments: own wholesale cost, rival mean cost (market, type group)
+instrument screening: 51 candidates -> 49 kept (0 explained by FE + X1 dummies, 2 near-collinear at tol 0.0001)
+condition number of standardized [X1, Z] after FE: 707
+BLP instruments: 49 excluded instruments
+markets: 6,400  stores: 83  weeks: 92  product-market obs: 255,426  agents: 128,000
+Initializing the problem ...
+Absorbing demand-side fixed effects ...
+Initialized the problem after 00:00:06.
+
+Dimensions:
+======================================================
+ T      N      F     I      K1    K2    D    MD    ED 
+----  ------  ---  ------  ----  ----  ---  ----  ----
+6400  255426   7   128000   20    3     5    68    2  
+======================================================
+
+Formulations:
+==================================================================================================================================================================
+       Column Indices:           0         1           2         3       4      5    6    7    8    9    10    11    12    13    14    15    16    17    18    19 
+-----------------------------  ------  ---------  -----------  -----  -------  ---  ---  ---  ---  ---  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----
+ X1: Linear Characteristics    prices     x0          x1        x2      x3     x4   x5   x6   x7   x8    x9   x10   x11   x12   x13   x14   x15   x16   x17   x18 
+X2: Nonlinear Characteristics    1      prices    family_size                                                                                                     
+       d: Demographics         income  income_sq    hhsize     child  elderly                                                                                     
+==================================================================================================================================================================
+Dimensions:
+======================================================
+ T      N      F     I      K1    K2    D    MD    ED 
+----  ------  ---  ------  ----  ----  ---  ----  ----
+6400  255426   7   128000   20    3     5    68    2  
+======================================================
+
+Formulations:
+==================================================================================================================================================================
+       Column Indices:           0         1           2         3       4      5    6    7    8    9    10    11    12    13    14    15    16    17    18    19 
+-----------------------------  ------  ---------  -----------  -----  -------  ---  ---  ---  ---  ---  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----
+ X1: Linear Characteristics    prices     x0          x1        x2      x3     x4   x5   x6   x7   x8    x9   x10   x11   x12   x13   x14   x15   x16   x17   x18 
+X2: Nonlinear Characteristics    1      prices    family_size                                                                                                     
+       d: Demographics         income  income_sq    hhsize     child  elderly                                                                                     
+==================================================================================================================================================================
+free pi entries (rows: constant, price, family_size):
+ [[1 0 0 0 0]
+ [1 0 0 0 0]
+ [0 0 1 0 0]]
+theta: ['sigma constant', 'sigma price', 'sigma family_size', 'pi constant x income', 'pi price x income', 'pi family_size x hhsize']
+saved /Users/yanziyu/Desktop/empirical_io_ps3/output/jacobian_coarse_every4_fe-store_week_coarse_oz8_MW1.5_pi-slim_demoiv_costiv.npz
+      107.35 real       480.59 user        36.06 sys
+          3624337408  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             4051755  page reclaims
+                 568  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                1396  voluntary context switches
+              561044  involuntary context switches
+       4480583268820  instructions retired
+       1728722986288  cycles elapsed
+          9151226304  peak memory footprint

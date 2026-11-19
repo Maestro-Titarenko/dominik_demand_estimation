@@ -29,6 +29,8 @@ Usage:
     python code/03_blp_nevo.py                    # quarterly subsample (week % 13 == 0)
     python code/03_blp_nevo.py --every 100        # smoke test, 175 markets (< 1 min)
     python code/03_blp_nevo.py --every 13 --eval-only   # one objective evaluation, timing
+    python code/03_blp_nevo.py --every 4 --jacobian-at output/nevo_params_<tag>.csv
+                                                  # save dxi/dtheta and instruments at estimates
 Robustness / alternatives:
     --mw-quantile 0.99 | --mw-mult 2 | --market-size traffic   market size
     --pi full                                                   10 demographic interactions
@@ -38,6 +40,9 @@ Robustness / alternatives:
     --share-unit package                                        one package = one choice
     --fe week --store-controls                                  observed store controls, no store FE
     --promo {any,share,fw,fwdummy} [--promo-cut 0.5]            B and S promotion controls in X1
+    --optimal-iv                                                also re-estimate with optimal instruments
+    --product-fe | --product-quarter-fe                         product (x quarter) fixed effects, no dummies
+    --promo fw --promo-cf                                       control function for promotion endogeneity
 """
 import argparse
 import contextlib
@@ -98,6 +103,23 @@ ap.add_argument("--promo", choices=["none", "any", "share", "fw", "fwdummy"], de
                      "mechanically with quantity); fw = fixed-weight share of the product's "
                      "UPCs on the deal; fwdummy = 1[fw >= --promo-cut]")
 ap.add_argument("--promo-cut", type=float, default=0.5, help="threshold for --promo fwdummy")
+ap.add_argument("--jacobian-at", default=None, metavar="PARAMS_CSV",
+                help="evaluate once at the sigma/pi in a nevo_params_*.csv and save xi, its "
+                     "Jacobian in theta, prices, X1 dummies and instruments to "
+                     "output/jacobian_<tag>.npz (instrument-relevance diagnostics), then exit")
+ap.add_argument("--product-fe", action="store_true",
+                help="absorb product fixed effects (replaces the characteristic dummies): "
+                     "removes time-invariant unobserved product quality from xi")
+ap.add_argument("--product-quarter-fe", action="store_true",
+                help="absorb product x quarter (13-week period) fixed effects: also removes "
+                     "slow-moving product-specific demand (implies --product-fe)")
+ap.add_argument("--promo-cf", action="store_true",
+                help="control function for the promotion controls: adds the residuals of own "
+                     "promotion on the same product's mean promotion in the other stores that "
+                     "week (plus all exogenous variables) to X1")
+ap.add_argument("--optimal-iv", action="store_true",
+                help="after estimation, re-estimate with pyBLP feasible optimal instruments "
+                     "(outputs tagged _optiv)")
 ap.add_argument("--eval-only", action="store_true",
                 help="benchmark: evaluate the objective once at the starting values and exit")
 args = ap.parse_args()
@@ -114,7 +136,12 @@ TAG = (f"{args.panel}_every{args.every}_fe-{args.fe}_{args.dummies}" + ("_storec
        + ("_nest" if args.nest else "") + ("_demoiv" if args.demo_iv else "")
        + ("_costiv" if args.cost_iv else "")
        + ("" if args.promo == "none" else f"_promo-{args.promo}"
-          + (f"{args.promo_cut:g}" if args.promo == "fwdummy" else "")))
+          + (f"{args.promo_cut:g}" if args.promo == "fwdummy" else ""))
+       + ("_cf" if args.promo_cf else "")
+       + ("_prodqfe" if args.product_quarter_fe else "_prodfe" if args.product_fe else ""))
+args.product_fe = args.product_fe or args.product_quarter_fe
+if args.promo_cf and args.promo == "none":
+    ap.error("--promo-cf needs --promo")
 WEEK_FE = args.fe in ("week", "store_week")
 
 pyblp.options.digits = 3
@@ -204,6 +231,13 @@ x1_labels = {f"x{k}": c for k, c in enumerate(dums.columns)}
 dums.columns = list(x1_labels)
 pdat = pd.concat([pdat, dums], axis=1)
 print(f"X1 dummies: {dums.shape[1]} (dropped as collinear/base: {dropped})")
+if args.product_fe:
+    x1_labels = {}        # size, brand and type dummies are constant within a product
+    pdat["pfe_id"] = pdat["product_ids"].astype(str)
+    if args.product_quarter_fe:
+        pdat["pfe_id"] += "|q" + (pdat["week"] // 13).astype(str)
+    print(f"product{' x quarter' if args.product_quarter_fe else ''} fixed effects: "
+          f"{pdat.pfe_id.nunique()} cells; X1 dummies absorbed")
 
 # ------------------------------------------------------------------ store controls
 # Observed store characteristics, used in place of store fixed effects: price tier
@@ -237,6 +271,13 @@ if args.promo != "none":
         x1_labels[f"pr_{lab}"] = f"promo {lab} ({args.promo})"
     print(f"promotion controls ({args.promo}): mean B {pdat.pr_B.mean():.3f}, "
           f"mean S {pdat.pr_S.mean():.3f}")
+    if args.promo_cf:
+        # leave-one-out: mean promotion of the same product in the OTHER stores that week
+        for lab in ["B", "S"]:
+            g = pdat.groupby(["product_ids", "week"])[f"pr_{lab}"]
+            n = g.transform("size")
+            pdat[f"loo_{lab}"] = ((g.transform("sum") - pdat[f"pr_{lab}"]) / (n - 1).clip(lower=1)
+                                  ).where(n > 1, 0.0)
 
 # ------------------------------------------------------------------ BLP instruments
 # Characteristics for the instruments: size-class and type-group dummies (coarse, so the
@@ -294,7 +335,8 @@ def within_fe(a):
     a = np.asarray(a, dtype=float)
     a = a - a.mean(axis=0)
     keys = (([pdat["store"].values] if STORE_FE else [])
-            + ([pdat["week"].values] if WEEK_FE else []))
+            + ([pdat["week"].values] if WEEK_FE else [])
+            + ([pdat["pfe_id"].values] if args.product_fe else []))
     for _ in range(100 if keys else 0):
         prev = a
         for k in keys:
@@ -304,9 +346,9 @@ def within_fe(a):
     return a
 
 
-Xw = within_fe(pdat[list(x1_labels)].values)
+Xw = within_fe(pdat[list(x1_labels)].values) if x1_labels else np.zeros((len(pdat), 0))
 Zw = within_fe(iv)
-Zr = Zw - Xw @ np.linalg.lstsq(Xw, Zw, rcond=None)[0]
+Zr = Zw - Xw @ np.linalg.lstsq(Xw, Zw, rcond=None)[0] if x1_labels else Zw
 keep_var = Zr.std(axis=0) > 1e-3 * iv.std(axis=0)
 _, r, piv = qr(Zr[:, keep_var] / Zr[:, keep_var].std(axis=0), mode="economic", pivoting=True)
 rank = int((np.abs(np.diag(r)) > IV_TOL * np.abs(r[0, 0])).sum())
@@ -322,6 +364,27 @@ iv = (iv - iv.mean(axis=0)) / iv.std(axis=0)      # standardize: better-conditio
 for k in range(iv.shape[1]):
     pdat[f"demand_instruments{k}"] = iv[:, k]
 print(f"BLP instruments: {iv.shape[1]} excluded instruments")
+
+# ------------------------------------------------------------------ promotion control function
+# First stage in the absorbed space: own promotion on all exogenous variables (other X1
+# columns, excluded instruments) and the leave-one-out promotion of the same product in the
+# other stores. The residual enters X1; its coefficient is a test of promotion exogeneity
+# (Hausman), and the promotion coefficients become IV estimates. Standard errors do not
+# account for the estimated first stage.
+if args.promo_cf:
+    oth = [c for c in x1_labels if not c.startswith("pr_")]
+    W0 = np.hstack([within_fe(pdat[oth].values) if oth else np.zeros((len(pdat), 0)), Zw[:, cols]])
+    L = within_fe(pdat[["loo_B", "loo_S"]].values)
+    W1 = np.hstack([W0, L])
+    for lab in ["B", "S"]:
+        y = within_fe(pdat[[f"pr_{lab}"]].values)[:, 0]
+        e0 = y - W0 @ np.linalg.lstsq(W0, y, rcond=None)[0]
+        e1 = y - W1 @ np.linalg.lstsq(W1, y, rcond=None)[0]
+        pdat[f"cf_{lab}"] = e1
+        x1_labels[f"cf_{lab}"] = f"control function {lab}"
+        print(f"control function {lab}: partial R2 of other-store promotion for own promotion "
+              f"{1 - (e1 @ e1) / (e0 @ e0):.3f}; residual share of own-promotion variation "
+              f"{(e1 @ e1) / (y @ y):.3f}")
 
 product_data = pdat.rename(columns={"price": "prices", "firm": "firm_ids"})
 product_data["family_size"] = product_data["size_class"].isin(
@@ -364,7 +427,9 @@ print(f"markets: {len(mk):,}  stores: {mk.store.nunique()}  weeks: {product_data
 # ------------------------------------------------------------------ problem
 absorb = {"none": None, "week": "C(week)", "store": "C(store)",
           "store_week": "C(store) + C(week)"}[args.fe]
-X1 = pyblp.Formulation("0 + prices + " + " + ".join(x1_labels), absorb=absorb)
+if args.product_fe:
+    absorb = (absorb + " + " if absorb else "") + "C(pfe_id)"
+X1 = pyblp.Formulation(" + ".join(["0 + prices"] + list(x1_labels)), absorb=absorb)
 X2 = pyblp.Formulation("1 + prices + family_size")
 D = pyblp.Formulation("0 + income + income_sq + hhsize + child + elderly")
 problem = pyblp.Problem((X1, X2), product_data, D, agent_data)
@@ -399,6 +464,39 @@ if args.nest:
     initial_rho = 0.5
     print("nesting: one inside nest; sigma_constant fixed at 0; initial rho = 0.5")
 
+if args.jacobian_at:
+    # Evaluate at given estimates (rows: block sigma / pi, parameter "<x2> x <demographic>").
+    est = pd.read_csv(args.jacobian_at)
+    x2n = ["constant", "price", "family_size"]
+    dn = ["income", "income_sq", "hhsize", "child", "elderly"]
+    for _, r in est[est.block == "sigma"].iterrows():
+        if initial_sigma[x2n.index(r.parameter), x2n.index(r.parameter)] != 0:
+            initial_sigma[x2n.index(r.parameter), x2n.index(r.parameter)] = r.estimate
+    for _, r in est[est.block == "pi"].iterrows():
+        a, b = r.parameter.split(" x ")
+        if initial_pi[x2n.index(a), dn.index(b)] != 0:
+            initial_pi[x2n.index(a), dn.index(b)] = r.estimate
+    # A sigma estimated at its bound of 0 would be treated as a restriction; keep it free.
+    for i in range(3):
+        if initial_sigma[i, i] == 0 and not (args.nest and i == 0):
+            initial_sigma[i, i] = 1e-6
+    pyblp.options.verbose = False
+    jr = problem.solve(sigma=initial_sigma, pi=initial_pi, rho=initial_rho, method="1s",
+                       optimization=pyblp.Optimization("return"))
+    names = [f"sigma {x2n[i]}" for i in range(3) if initial_sigma[i, i] != 0] + \
+            [f"pi {x2n[i]} x {dn[j]}" for i in range(3) for j in range(5) if initial_pi[i, j] != 0]
+    out = OUT / f"jacobian_{TAG}.npz"
+    np.savez_compressed(
+        out, J=np.asarray(jr.xi_by_theta_jacobian, dtype=np.float64), theta_names=np.array(names, dtype="U"),
+        xi=np.asarray(jr.xi).ravel(), prices=product_data["prices"].values,
+        X1=pdat[list(x1_labels)].values.astype(np.float32), x1_names=np.array(list(x1_labels.values()), dtype="U"),
+        Z=iv.astype(np.float32), store=pdat["store"].values, week=pdat["week"].values,
+        product_ids=pdat["product_ids"].astype(str).values.astype("U"), wcost=pdat["wcost"].values,
+        size_class=pdat["size_class"].astype(str).values.astype("U"), type_group=pdat["type_group"].astype(str).values.astype("U"),
+        brand_group=pdat["brand_group"].astype(str).values.astype("U"))
+    print(f"theta: {names}\nsaved {out}")
+    raise SystemExit
+
 ctx = pyblp.parallel(args.processes) if args.processes > 1 else contextlib.nullcontext()
 t0 = time.time()
 if args.eval_only:
@@ -410,19 +508,10 @@ if args.eval_only:
         print(f"BENCH markets={len(mk)} processes={args.processes} "
               f"one evaluation (objective + gradient + SEs): {time.time() - t1:.1f}s")
     raise SystemExit
-with ctx:
-    res = problem.solve(
-        sigma=initial_sigma,
-        pi=initial_pi,
-        rho=initial_rho,
-        optimization=pyblp.Optimization("l-bfgs-b", {"gtol": 1e-5}),
-        method="2s",
-    )
-    print(res)
-    print(f"estimation time: {(time.time() - t0) / 60:.1f} min")
-    res.to_pickle(OUT / f"nevo_results_{TAG}.pkl")
 
-    # ------------------------------------------------------------------ outputs
+
+def write_outputs(res, tag):
+    """Parameter table and own-price elasticities for one results object."""
     x2_names = ["constant", "price", "family_size"]
     d_names = ["income", "income_sq", "hhsize", "child", "elderly"]
     rows = [("beta", "price", res.beta[0, 0], res.beta_se[0, 0])]
@@ -438,16 +527,45 @@ with ctx:
             if initial_pi[i, j] != 0:
                 rows.append(("pi", f"{n} x {dn}", res.pi[i, j], res.pi_se[i, j]))
     tab = pd.DataFrame(rows, columns=["block", "parameter", "estimate", "se"])
-    tab.to_csv(OUT / f"nevo_params_{TAG}.csv", index=False)
+    tab.to_csv(OUT / f"nevo_params_{tag}.csv", index=False)
     print(tab[tab.block != "beta"].round(3).to_string(index=False))
     print(tab[(tab.block == "beta") & (tab.parameter == "price")].round(3).to_string(index=False))
 
     own = res.extract_diagonals(res.compute_elasticities()).flatten()
+    pd.Series(own).groupby(product_data["product_ids"].values).median() \
+        .sort_values().rename("median_own_elasticity").rename_axis("product_ids") \
+        .to_csv(OUT / f"nevo_own_elasticities_{tag}.csv")
+    print("\nown-price elasticity percentiles (5,25,50,75,95):",
+          np.percentile(own, [5, 25, 50, 75, 95]).round(2))
+    print(f"share of product-markets with positive own elasticity: {(own > 0).mean():.3f}")
 
-product_data["own_elasticity"] = own
-(product_data.groupby("product_ids")["own_elasticity"].median()
- .sort_values().rename("median_own_elasticity")
- .to_csv(OUT / f"nevo_own_elasticities_{TAG}.csv"))
-print("\nown-price elasticity percentiles (5,25,50,75,95):",
-      np.percentile(own, [5, 25, 50, 75, 95]).round(2))
-print(f"share of product-markets with positive own elasticity: {(own > 0).mean():.3f}")
+
+with ctx:
+    res = problem.solve(
+        sigma=initial_sigma,
+        pi=initial_pi,
+        rho=initial_rho,
+        optimization=pyblp.Optimization("l-bfgs-b", {"gtol": 1e-5}),
+        method="2s",
+    )
+    print(res)
+    print(f"estimation time: {(time.time() - t0) / 60:.1f} min")
+    res.to_pickle(OUT / f"nevo_results_{TAG}.pkl")
+    write_outputs(res, TAG)
+
+    if args.optimal_iv:
+        # Feasible optimal instruments (Chamberlain 1987; Reynaert and Verboven 2014):
+        # E[dxi/dtheta | Z] at the estimates, with E[p | Z] from the reduced-form regression of
+        # prices on the demand instruments (no supply side), then re-estimate in one GMM step.
+        t1 = time.time()
+        oi = res.compute_optimal_instruments(method="approximate")
+        problem_opt = oi.to_problem()
+        # keep every free parameter free: an estimate exactly at 0 would read as a restriction
+        sig0 = np.where(initial_sigma != 0, np.where(res.sigma == 0, 1e-3, res.sigma), 0)
+        pi0 = np.where(initial_pi != 0, np.where(res.pi == 0, 1e-3, res.pi), 0)
+        rho0 = res.rho if args.nest else None
+        res_opt = problem_opt.solve(sigma=sig0, pi=pi0, rho=rho0, method="1s",
+                                    optimization=pyblp.Optimization("l-bfgs-b", {"gtol": 1e-5}))
+        print(res_opt)
+        print(f"optimal-instrument estimation time: {(time.time() - t1) / 60:.1f} min")
+        write_outputs(res_opt, TAG + "_optiv")

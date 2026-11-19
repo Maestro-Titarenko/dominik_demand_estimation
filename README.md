@@ -4,7 +4,10 @@ BLP demand estimation for packaged cheese at Dominick's Finer Foods (Chicago, 19
 The model follows Nevo (2000); product definition, quantity units and market size follow
 Miller and Weinberg (2017).
 
-**Start with [demand_estimation_nevo_style.md](demand_estimation_nevo_style.md)**: full
+**Short version: [basics.md](basics.md)** (LaTeX: `basics.tex`): demand estimates, vertical
+conduct and the counterfactual without store-cut cheese.
+
+**Details: [demand_estimation_nevo_style.md](demand_estimation_nevo_style.md)**: full
 specification, data construction, instruments, the specification history and the benchmark
 results.
 
@@ -49,6 +52,7 @@ section 9 of the documentation. All estimation options are listed in the header 
 
 ```
 README.md                          this file
+basics.md / basics.tex             short write-up: demand, conduct, counterfactual
 demand_estimation_nevo_style.md    documentation and results
 requirements.txt                   pinned environment (Python 3.12, Longleaf)
 requirements-py39.txt              pinned environment (Python 3.9, macOS)
@@ -56,6 +60,7 @@ code/
   01_upc.py                        parse UPC descriptions: brand, type, form, size
   02_clean.py                      clean movement and traffic data, build the panel
   03_blp_nevo.py                   pyBLP estimation
+  04_supply.py                     conduct models and counterfactual (after 03, ~7 min)
   groups.py                        brand groups (8) and type groups (9)
   diagnostics/                     scripts behind the numbers quoted in the documentation
     first_stage.py                   instrument strength (section 5.2)
